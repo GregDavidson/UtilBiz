@@ -28,7 +28,7 @@ on that framework merged into the util schema of UtilBiz.
 In many cases code in the *custom* schema will have Classes (Tables) which
 extend corresponding Classes in the biz schema.
 
-Within a schema, file are grouped into packages:
+Within a schema, files are grouped into packages or modules:
 
 | Package	| Purpose
 |---------------|--------
