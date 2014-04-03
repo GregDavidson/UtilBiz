@@ -10,11 +10,10 @@ the foundation, the cutomized code lives in a third schema, on top of
 Biz which is on top of Util.  Appropriate permissions restrict the
 entry points for staff and clients.
 
-At least one successful online service company uses a descendant
-of this code to run their whole business, neatly hidden behind the
-web-based interfaces used by staff and customers alike.  With some
-further development the UtilBiz Framework could meet the needs of many
-businesses.
+At least one successful online service company uses a descendant of this
+code to run their whole business, neatly hidden behind the web-based
+interfaces used by staff and customers.  With some further development
+the UtilBiz Framework could meet the needs of many businesses.
 
 Parts of the UtilBiz framework were derived from an early version of
 the Wicci-Core Framework.  It would be great to have more recent work
@@ -27,7 +26,9 @@ on that framework merged into the util schema of UtilBiz.
 | *custom*	| your custom business code here!
 
 In many cases code in the *custom* schema will have Classes (Tables) which
-extend corresponding Classes in the biz schema, e.g.
+extend corresponding Classes in the biz schema.
+
+Within a schema, file are grouped into packages:
 
 | Package	| Purpose
 |---------------|--------
@@ -37,8 +38,7 @@ extend corresponding Classes in the biz schema, e.g.
 | deals		| pricing of goods and services
 
 
-Within a schema, file are grouped into packages.  A file naming convention
-helps manage the code:
+A file naming convention helps manage the code within a package:
 
 | File Name Pattern	| Reloadable	| Purpose
 |-----------------------|---------------|--------
@@ -47,7 +47,7 @@ helps manage the code:
 | *-tst-data.sql	| No	| example data for testing
 | *-tst.sql		| Yes	| unit test code for the package
 
-The last time this code was built it was all in one directory.  I've
+The last time this code was built it was all in one directory.  I've just
 partitioned the code into Util and Biz subdirectores.  The Makefile and
 a few other meta files need to be updated to reflect this.
 
