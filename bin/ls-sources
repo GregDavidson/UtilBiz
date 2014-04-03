@@ -1,0 +1,207 @@
+#!/usr/bin/gawk -f
+# Given a list of files and requests,
+# Generate a list of make dependencies.
+# Requests begin with $1 ~ /^#(set|schema|rule)
+# i.e. the first non-blank character must be # followed by a keyword
+
+# quote(str, quote-char, quoted quote-char)
+# returns str inside of a pair of quote-chars
+# any quote-chars inside of str are replaced by quoted quote-chars
+function quote(str, q, qq) {
+    if (q == "") q = "\""	# default quote is double quote
+    if (qq == "") qq = "\\" q	# default quoted-quote is backslash quote
+    return q gensub(q, qq, 1, str) q	# return str quoted
+}
+
+function concat(left, right, separator) {
+    if (right == "") return left
+    if (left == "") return right
+    if (separator == "") return left " " right
+    return left separator right
+}
+
+function line_message(msg) { print "#line " concat(NR, msg) }
+
+function line_warning(msg) { line_message( concat("Warning:", msg) ) }
+function line_error(msg) {
+    line_message( concat("Error:", msg) )
+    print "# " $0
+    next
+}
+function assert(bool, msg) {
+    if (bool) return;
+    line_error(msg)
+}
+
+# allows us to iterate up or down a sequence
+function from_to_by(from, to, by) { return by > 0 ? from <= to : from >= to }
+
+# returns the specified range of input fields joined by ofs
+function fields(from, to, ofs, by, result) {
+    # initialize optional parameters
+    if (ofs == "") ofs = OFS
+    if (by == 0) by = (from > to) ? -1 : 1
+    if ( result == "" && from_to_by(from, to, by) ) {
+	result = $from ; from = from + by
+    }
+    # add any additional fields separated by ofs
+    while ( from_to_by(from, to, by) ) {
+	result = result ofs $from ; from = from + by
+    }
+    return result
+}
+
+# returns the specified range of array elements joined by ofs
+function elements(array, from, to, ofs, by, result) {
+    # initialize optional parameters
+    if (ofs == "") ofs = OFS
+    if (by == 0) by = (from > to) ? -1 : 1
+    if ( result == "" && from_to_by(from, to, by) ) {
+	result = array[from] ; from = from + by
+    }
+    # add any additional elements separated by ofs
+    while ( from_to_by(from, to, by) ) {
+	result = result ofs array[from] ; from = from + by
+    }
+    return result
+}
+
+# manage the schema path
+
+# aka current schema
+function top_schema() {
+    return num_schemas ? schema_stack[num_schemas] : "public"
+}
+function schema_path(i, result) {
+    return num_schemas ? elements(schema_stack, num_schemas, 1, ",") : "public"
+}
+function set_schema(schema, comment) {
+    if (top_schema() != $2)
+	schema_stack[++num_schemas] = $2
+    print "#schema " concat(schema, comment, "\t# ")
+}
+
+# Variable=Value passing syntax is provided for gcc and psql.
+function gcc_vv(var, val) { return quote(" -D" var "=" val) }
+function sql_vv(var, val) { return " --variable " quote(var "=" val) }
+
+function gen_var(word) { return word ~ /=[a-zA-Z_]*=/ }
+
+function gen_var_val(word, type, val) {
+    var = gensub(/=/, "", "g", word)
+    v = tolower(var)
+    if (val != "") val = val
+    else if (v == "file_name") val = file_name
+    else if (v == "top_schema")	val = top_schema()
+    else if (v == "schema_path") val = schema_path()
+    else {
+	line_warning("variable " var " unknown")
+	return word
+    }
+    if (type == "sql") return sql_vv(var, val)
+    else if (type == "c") return gcc_vv(var, quote(val))
+    else {
+	line_warning("type " type " unknown")
+	return word
+    }
+}
+
+# Let's have some defaults
+BEGIN {
+    rule_target["c"] = "o"	# .c files produce .o files
+}
+
+# Set option request allows for flags and variables
+#set uses the whole line, so no room for #comments
+$1 == "#set" && /#.*#/ {
+    print "#Warning line " NR " value include a #:"
+}
+$1 == "#set" && NF == 2 {
+    option[$2] = 1
+    print ; next
+}
+$1 == "#set" && NF > 2 {
+    option[$2] = fields(3, NF)
+    print ; next
+}
+$1 == "#unset" && NF == 2 {
+    delete option[$2]
+    print ; next
+}
+
+# handle empty lines
+NF == 0 { if (option["no-empty-lines"] == "") print ; next }
+# handle comment lines
+$1 == "#" { if (option["no-comment-lines"] == "") print ; next }
+
+# Use the debug option to get debugging
+option["show-input-lines"] != "" && NF != 0 {print "#input: " $0}
+
+#schema request introduces a new schema
+$1 == "#schema" {
+    assert(NF == 2 || NF > 2 && $3 ~ /#/)
+    set_schema($2)		# prints
+    next
+}
+
+#rule request introduces a new make rule
+$1 == "#rule" {
+    assert( NF >= 3 )
+    rule_target[$3] = $2
+    if ( NF > 3 )
+	rule[$3] = fields(4, NF)
+    print ; next
+}
+
+# any other line beginning with # is considered to be a comma
+$1 ~ /^#/ { print ; next }
+
+# filenames with extensions generate make commands
+
+# analyze the filename
+$1 ~ /.*\..*/{
+    file_name=$1
+    file_base = gensub(/\.[^.]*$/, "", 1, $1)
+    file_type = gensub(/.*\./, "", 1, $1)
+    assert(rule_target[file_type] != "", "no rule for extension " file_type)
+    target = file_base "." rule_target[file_type]
+    num_pieces = split(file_base, piece, /_-/);
+    last_piece = piece[num_pieces]
+    # autoschema option will set the schema automatically, e.g.
+    # biz-html-schema.sql automatically creates #schema html
+    if (num_pieces >= 2 && last_piece == "schema" && option["autoschema"] == 1)
+	set_schema(piece[num_pieces - 1], "via autoschema")
+    delete piece
+}
+
+# How are we doing?
+option["debug"] {print "#target: " target}
+
+# generate the make dependency line
+
+# a new file is dependent on the target of the last command
+NF==1 {sources = $1 " " last_target}
+# when dependent files are given explicitly, we can substitute the last target if desired
+$2 == "%" {$2 = last_target}
+NF >1{sources = $0}
+# now that we've used it, set it for the future
+option["no_depend"] != file_last_word {
+  last_target = " " target
+  if (debug) print "#last_target = " last_target
+}
+
+# OK, generate the dependency line
+{print target ": " sources}
+
+# add any custom rule for this file type
+rule[file_type] != "" {
+    n = split(rule[file_type], word)
+    for (i = 1; i <= n; i++)
+	if ( gen_var(word[i]) )
+	     word[i] = gen_var_val(word[i], file_type)
+    print "\t" elements(word, 1, n, " ")
+    delete word
+}
+
+# get ready for the next input
+{target=""}

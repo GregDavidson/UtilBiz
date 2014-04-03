@@ -1,0 +1,24 @@
+#!/bin/sh
+ProgName=`basename $0`
+SQL_FILES=CREDITLINK-SQL-FILES
+CreditLinkHome=/home/shared/CreditLinkSystem
+CreditLinkSrc=$CreditLinkHome/src
+CreditLinkProgs=$CreditLinkHome/src
+CreditLinkProgsLib=$CreditLinkProgs
+awk_script=$CreditLinkProgsLib/$ProgName.awk
+if [ ! -f $awk_script -o ! -r $awk_script ]; then
+  >&2 echo "$ProgName error: No readable file $awk_script"
+  exit 1
+fi
+if [ $# -ge 1 ]; then
+  cat "$@"
+elif [ -f "$SQL_FILES" ]; then
+  cat "$SQL_FILES"
+else
+  cd "$CreditLinkSrc"
+  if [ ! -f "$SQL_FILES" ]; then
+    >&2 echo "$ProgName error: No readable file $awk_script"
+    exit 1
+  fi
+  cat "$d/$SQL_FILES"
+fi | awk -f "$awk_script" -v debug=1

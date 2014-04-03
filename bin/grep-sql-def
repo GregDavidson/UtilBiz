@@ -1,0 +1,15 @@
+#!/usr/bin/sh
+# list sql definitions in given files
+
+sed -r \
+  -e 's/^[[:space:]]*//'			\
+  -e '/^(CREATE|FUNCTION|create|function)[[:space:]]/!d'		\
+  -e 's/^CREATE[[:space:]]+//'			\
+  -e 's/^OR[[:space:]]+REPLACE[[:space:]]*//'	\
+  -e 's/[[:space:]]+AS.*\$\$//'			\
+  -e 's/[[:space:]]+AS[[:space:]]+/ /'		\
+  -e 's/[[:space:]]+RETURNS[[:space:]]+/ /'		\
+  -e '/^[[:space:]]*$/d'			\
+  -e 's/[[:space:]]+\([^)]*$//'			\
+  -e 's/[;[:space:]]*$//'			\
+  "$@"

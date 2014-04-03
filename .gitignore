@@ -1,0 +1,9 @@
+*~
+*.sql-out
+*.sql-out-err
+TAGS
+TAGS-*
+Limbo
+*.depends
+*.foo
+*-foo

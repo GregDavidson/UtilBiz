@@ -1,0 +1,7 @@
+#!/usr/bin/gawk -f
+# list source files from a SOURCE-FILES kind of file
+NF == 0 || $1 ~ /^#/ { next }
+{print $1}
+
+
+

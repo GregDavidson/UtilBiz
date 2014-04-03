@@ -1,0 +1,58 @@
+#set no-comment-lines
+#set no-empty-lines
+# don't automatically create schemas based on filenames
+#set autoschema off
+# don't use test file as dependency for the next file
+#set no_depend tst
+
+# .sql-out target, .sql source, make rule with =variable= substitutions
+#rule sql-out sql set -o pipefail ; $(PSQL) =file_name= =top_schema= =schema_path= $(DB) -f $< 2>&1 | tee $@-err && mv $@-err $@
+
+#schema util	# initial schema
+
+util-modules-schema.sql
+util-modules-schema-code.sql
+
+util-xtest.sql
+
+util-misc.sql
+
+util-array.sql
+util-array-tst.sql
+
+util-str.sql
+util-str-tst.sql
+
+util-xml.sql
+util-xml-tst.sql
+
+util-debug-schema.sql
+util-debug-code.sql
+
+util-db-code.sql
+
+util-meta-schema.sql
+util-meta-code.sql
+util-meta-tst.sql
+
+util-bitset-schema.sql
+util-bitset-code.sql
+util-bitset-tst.sql
+
+util-time.sql
+
+util-handles.sql
+util-handles-tst-data.sql
+util-handles-tst.sql
+
+util-notes-schema.sql
+util-notes-code.sql
+# util-notes-tst.sql
+
+util-web-enums.sql
+util-web-schema.sql
+util-web-code.sql
+util-web-tst-data.sql
+util-web-tst.sql
+
+util.sql

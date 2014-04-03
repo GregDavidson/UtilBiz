@@ -1,0 +1,35 @@
+#set no-comment-lines
+#set no-empty-lines
+# don't automatically create schemas based on filenames
+#set autoschema off
+# don't use test file as dependency for the next file
+#set no_depend tst
+
+# .sql-out target, .sql source, make rule with =variable= substitutions
+#rule sql-out sql set -o pipefail ; $(PSQL) =file_name= =top_schema= =schema_path= $(DB) -f $< 2>&1 | tee $@-err && mv $@-err $@
+
+#schema biz
+
+biz-deals-schema.sql
+biz-deals-code.sql
+biz-deals-tst-data.sql
+biz-deals-tst.sql
+
+biz-client-schema.sql
+biz-client-code.sql
+biz-client-views.sql
+biz-client-lookup.sql
+biz-client-tst-data.sql
+biz-client-tst.sql
+
+biz-srv-schema.sql
+biz-srv-code.sql
+biz-srv-tst-data.sql
+biz-srv-tst.sql
+
+biz-accts-schema.sql
+biz-accts-code.sql
+biz-accts-tst-data.sql
+biz-accts-tst.sql
+
+biz.sql
